@@ -1,0 +1,229 @@
+#User story 6: 
+
+#Nick wants to start a company in HR management & consultancy. He wants to do some research beforehand and know how many such job postings are there (listed on monster) which companies do they post jobs for? Do they mention any conditions or commission related information? 
+
+#Database: Monster India
+
+#Steps: Using filters we get the job postings which have job categories as HR or Recruitment and Staffing and find the count. Next group by organization_name to know the company for which hiring is done. And then use regex to find job postings with words like commissions. (MongoDB)
+
+#Code:
+[
+    {
+        '$match': {
+            'job_details.job_category': {
+                '$regex': 'HR|Recruitment and Staffing', 
+                '$options': 'i'
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$job_details.job_requirements', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$job_details.organization_name', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$match': {
+            'job_details.job_description': {
+                '$regex': 'commission', 
+                '$options': 'i'
+            }
+        }
+    }
+]
+
+
+##############
+
+
+#User story 7: 
+
+#Nina as the owner of a logistic company wants to know how many job openings are offered relocation assistance. Which companies are these? And in which job locations do they provide relocation assistance.  
+
+#Database: Monster India
+
+#Steps: Using regex we can find job postings with words like relocation assistance. Next filter organization_name to know the company for which hiring is done. And then filter by city to know the location. (MongoDB)
+
+#Code:
+[
+    {
+        '$match': {
+            'job_details.job_description': {
+                '$regex': 'Relocation assistance', 
+                '$options': 'i'
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$job_details.organization_name', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$location_details.city', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }
+]
+
+
+################
+
+
+
+#User story 8:
+
+#The RTO of India wants to know how many job openings typically ask for driver/biker license as a job requirement. These jobs belong to which city and states?  
+
+#Database: Monster India
+
+#Steps: Using regex we can find job postings with words like license, driver, biker. And then filter by state and or city to know the location. (MongoDB)
+
+#Code:
+
+[
+    {
+        '$match': {
+            '$and': [
+                {
+                    'job_details.job_description': {
+                        '$regex': 'license', 
+                        '$options': 'i'
+                    }
+                }, {
+                    'job_details.job_description': {
+                        '$regex': 'driver|biker', 
+                        '$options': 'i'
+                    }
+                }
+            ]
+        }
+    }, {
+        '$group': {
+            '_id': '$location_details.state', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$location_details.city', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }
+]
+
+
+###################
+
+
+#User story 9: 
+
+#Fred is a college dropout and he wants to if there are any full time / part time (not contractual) BPO jobs that sponsor education for their employee or provide flexibility for part time studies
+
+#Database: Monster USA
+
+#Steps:  For this, first we filter job postings which have BPO as their Type and full time or part time in their job_type. Next, filter the job description with regex as ‘education’ 
+
+#Code:
+
+import pandas as pd
+import numpy as np
+import redis
+import json
+r = redis.Redis(host='localhost', port=6379, db=0)
+df= pd.read_excel('C:/Users/49152/Downloads/Ojal/IS-Redis/monster_com-job_sample-cleaned.xls')
+df['date_added']=df['date_added'].astype(str)
+df.head(5)
+df.drop(df.iloc[:, 14:256], inplace = True, axis = 1)
+for i in range(len(df['country'])):
+    user = {"country":df['country'][i], "country_code":df['country_code'][i],
+            "date_added":df['date_added'][i], "has_expired":df['has_expired'][i],
+            "job_board":df['job_board'][i],"job_description":df['job_description'][i],
+            "job_title":df['job_title'][i],"location":df['location'][i],"Type":df['Type'][i],
+            "page_url":df['page_url'][i],"salary":df['salary'][i], "sector":df['sector'][i],
+            "job_type":df['job_type'][i], "uniq_id":df['uniq_id'][i]}
+    r.hmset("dict"+str(i),user)
+uniq_id_list = []
+for i in range(len(df)):
+    a = r.hget('dict'+str(i),'uniq_id')
+    uniq_id_list.append(a)
+list_id = []
+list_date = []
+for i in range(len(df)):
+    a = r.hget('dict'+str(i),'uniq_id')
+    list_id.append(a)
+    b = r.hget('dict'+str(i), 'date_added')
+    list_date.append(b)
+list_JD =[]
+list_JT =[]
+list_jobtype =[]
+list_Type =[]
+list_location =[]
+list_salary =[]
+list_sector =[]
+for i in range(len(df)):
+    c = r.hget('dict'+str(i), 'job_description')
+    list_JD.append(c)
+    d = r.hget('dict'+str(i), 'job_title')
+    list_JT.append(d)
+    e = r.hget('dict'+str(i),'job_type')
+    list_jobtype.append(e)
+    f = r.hget('dict'+str(i), 'Type')
+    list_Type.append(f)
+    g = r.hget('dict'+str(i), 'location')
+    list_location.append(g)
+    h = r.hget('dict'+str(i), 'salary')
+    list_salary.append(h)
+    k = r.hget('dict'+str(i), 'sector')
+    list_sector.append(k)
+list_df = pd.DataFrame()
+list_df['uniq_id'] = list_id
+list_df['date_added'] = list_date
+list_df = list_df.stack().str.decode('utf-8').unstack()
+query2 = pd.DataFrame()
+query2['uniq_id'] = list_id
+query2['date_added'] = list_date
+query2['job_description'] = list_JD
+query2['job_title'] = list_JT
+query2['job_type'] = list_jobtype
+query2['Type'] = list_Type
+query2['location'] = list_location
+query2['salary'] = list_salary
+query2['sector'] = list_sector
+query2 = query2.stack().str.decode('utf-8').unstack()
+ids = list_df['uniq_id']
+
+list_df[ids.isin(ids[ids.duplicated()])].sort_values("uniq_id").head(11)
+
+
+######################
+
+
+#User story 10: 
+
+#Roger who works in the admin of Monster.com has been getting complaints that some unique job ids are not so unique and there are cases where more than one job posting has got the same uniq_id. He thinks it’s from the time he created a new ETL script, so he wants to know how many such cases exists and what dates these (duplicate uniq_id job postings) were created?
+
+#Database: Monster USA
+
+#Steps:  For this user story we mainly need two columns from our dataset - date and uniq_id.
+Since each row record is saved as a dictionary in redis. I only call out the two required columns in a list and find the duplicated in uniq_id along with their associated dates.
+
+#Code:
+
+BPO_PFT = query2[(query2['Type'] == 'BPO') & ((query2['job_type'] == 'Full Time')| (query2['job_type'] == 'Part Time'))]
+BPO_PFT
+BPO_PFT.set_index('job_description').filter(regex='education', axis=0) 

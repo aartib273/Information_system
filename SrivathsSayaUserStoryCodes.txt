@@ -1,0 +1,133 @@
+11. Anna as a head a recruitment in a budding company wants to find out what are words most utilized in describing the companies to be appealing to the job seekers.
+
+Database : Redis, Dataset : Monster US 
+
+Code : 
+
+import pandas as pd
+import numpy as np
+import redis
+
+r = redis.Redis(host='localhost', port=6379, db=0)
+df= pd.read_excel('C:/monster_com-job_sample.xls')
+df.drop(df.iloc[:, 14:256], inplace = True, axis = 1)
+df['date_added']=df['date_added'].astype(str)
+df.head(3)
+
+for i in range(len(df['country'])):
+    user = {"country":df['country'][i], "country_code":df['country_code'][i], "date_added":df['date_added'][i], "has_expired":df['has_expired'][i],"job_board":df['job_board'][i],"job_description":df['job_description'][i],"job_title":df['job_title'][i],"location":df['location'][i],"Type":df['Type'][i],"page_url":df['page_url'][i],"salary":df['salary'][i],"uniq_id":df['uniq_id'][i]}
+    r.hmset("sind"+str(i),user)
+
+text = " "
+for i in range(len(df['country'])):
+    x = r.hget("sind"+str(i),'job_description')
+    text = text + str(x)
+
+cachedStopWords = stopwords.words("english")
+def testFuncNew(raw):
+        cleaned = ' '.join([word for word in raw.split() if word not in cachedStopWords])
+        return cleaned
+cleaned = testFuncNew(text)
+cleaned = cleaned.replace('\\xc2\\xac\\xe2\\x80\\xa0','')
+cleaned = cleaned.replace('The','')
+cleaned = cleaned.replace('-','')
+cleaned = cleaned.replace('This','')
+cleaned = cleaned.replace('We','')
+cleaned = cleaned.replace('job','')
+
+
+import collections
+def top5_words(text):
+    counts = collections.Counter(text.split())
+    return counts.most_common(10)
+top5_words(cleaned)
+
+
+
+12. Rajeev is a student in Bangalore and he is in urgent need of a part time job. So he wants find which sector/domain has most  part time jobs in his location. He would also like to know which companies are providing them.
+Database : MongoDB, Dataset : Monster India
+
+Code : 
+[{
+    $match: {
+        "job_type": "PART_TIME",
+        "city": "Bengaluru / Bangalore"
+    }
+}, {
+    $group: {
+        _id: "$job_category",
+        counter: {
+            $sum: 1
+        }
+    }
+}]
+
+13. Sara who works in Retail sector in a foreign country, wants to know which location is the hotspot for that sector in the US.
+
+Database : MongoDB, Dataset : Monster US
+
+Code: 
+
+[{
+    $match: {
+        "job_details.sector": "Retail"
+    }
+}, {
+    $group: {
+        _id: "$location_details.location",
+        counter: {
+            $sum: 1
+        }
+    }
+}]
+
+14. Luiz as a DS wants to analyze the growth rate of all kinds of jobs at Dallas location through the years.
+
+Database : MongoDB, Dataset : Monster US 
+
+Code:
+
+[{$match: {
+  "location_details.location":"Dallas, TX",
+  "job_details.sector":"Medical/Health"
+}}, {$group: 
+    {
+  _id: {year :  { $substr : ["$date_added", 6, 10 ] }},
+  counter:{$sum:1}
+}
+
+}]
+
+
+15. Nitin as a head of Bangalore branch of Advika Solutions, wants to how many Java Developer positions are present in Advika Solutions in Bangalore to distribute the newly trained grads to those positions.
+
+Database : Redis, Dataset : Monster India
+
+Code :
+
+import pandas as pd
+import numpy as np
+import redis
+
+r = redis.Redis(host='localhost', port=6379, db=1)
+df= pd.read_excel('C:/MonsterIndiaNeo.xlsx',error_bad_lines=False)
+df.head(2)
+
+df['job_requirements']=df['job_requirements'].astype(str)
+df['job_experience']=df['job_experience'].astype(str)
+df['country']=df['country'].astype(str)
+df['job_board']=df['job_board'].astype(str)
+df['job_type']=df['job_type'].astype(str)
+df['date_added']=df['date_added'].astype(str)
+df['country_code']=df['country_code'].astype(str)
+df['state']=df['state'].astype(str)
+df['city']=df['city'].astype(str)
+df['organization_name']=df['organization_name'].astype(str)
+df['job_category']=df['job_category'].astype(str)
+df['job_title']=df['job_title'].astype(str)
+
+for i in range(len(df['job_title'])):
+    user = {"job_title":df['job_title'][i], "job_category":df['job_category'][i], "organization_name":df['organization_name'][i], "city":df['city'][i],"state":df['state'][i],"country_code":df['country_code'][i],"date_added":df['date_added'][i],"job_type":df['job_type'][i],"job_board":df['job_board'][i],"country":df['country'][i],"job_experience":df['job_experience'][i],"job_requirements":df['job_requirements'][i]}
+    r.hmset(df['job_title'][i]+df['organization_name'][i]+df['city'][i]+str(i),user)
+
+r.keys('*Java DeveloperAdvika SolutionsBengaluru / Bangalore*')

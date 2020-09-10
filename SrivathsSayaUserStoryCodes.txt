@@ -1,4 +1,4 @@
-1. Anna as a head a recruitment in a budding company wants to find out what are words most utilized in describing the companies to be appealing to the job seekers.
+11. Anna as a head a recruitment in a budding company wants to find out what are words most utilized in describing the companies to be appealing to the job seekers.
 
 Database : Redis, Dataset : Monster US 
 
@@ -44,7 +44,7 @@ top5_words(cleaned)
 
 
 
-2. Rajeev is a student in Bangalore and he is in urgent need of a part time job. So he wants find which sector/domain has most  part time jobs in his location. He would also like to know which companies are providing them.
+12. Rajeev is a student in Bangalore and he is in urgent need of a part time job. So he wants find which sector/domain has most  part time jobs in his location. He would also like to know which companies are providing them.
 Database : MongoDB, Dataset : Monster India
 
 Code : 
@@ -62,7 +62,7 @@ Code :
     }
 }]
 
-3. Sara who works in Retail sector in a foreign country, wants to know which location is the hotspot for that sector in the US.
+13. Sara who works in Retail sector in a foreign country, wants to know which location is the hotspot for that sector in the US.
 
 Database : MongoDB, Dataset : Monster US
 
@@ -81,7 +81,7 @@ Code:
     }
 }]
 
-4. Luiz as a DS wants to analyze the growth rate of all kinds of jobs at Dallas location through the years.
+14. Luiz as a DS wants to analyze the growth rate of all kinds of jobs at Dallas location through the years.
 
 Database : MongoDB, Dataset : Monster US 
 
@@ -99,7 +99,7 @@ Code:
 }]
 
 
-5. Nitin as a head of Bangalore branch of Advika Solutions, wants to how many Java Developer positions are present in Advika Solutions in Bangalore to distribute the newly trained grads to those positions.
+15. Nitin as a head of Bangalore branch of Advika Solutions, wants to how many Java Developer positions are present in Advika Solutions in Bangalore to distribute the newly trained grads to those positions.
 
 Database : Redis, Dataset : Monster India
 

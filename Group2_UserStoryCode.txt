@@ -1,0 +1,664 @@
+# User Story 1: Ram is a sales executive, works at Tech Mahindra company, he is looking for a job in which he can get onsite opportunity because he likes to exposure new places.
+# Database used – MongoDB
+
+from pymongo import MongoClient
+
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
+
+client = MongoClient('mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false')
+result = client['MonsterUS']['IndiaJobs'].aggregate([
+    {
+        '$match': {
+            'job_details.job_description': {
+                '$regex': 'onsite'
+            }
+        }
+    }, {
+        '$match': {
+            'job_details.job_title': {
+                '$regex': 'sales'
+            }
+        }
+    }, {
+        '$project': {
+            'job_details.job_title': 1
+        }
+    }
+])
+
+# User Story 2: Raj runs job consultant company and wants to set up new office where more jobs are available. Therefore, he wants to know jobs availability in all parts of the country. (MongoDB)
+# Database used - MongoDB
+
+from pymongo import MongoClient
+
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
+
+client = MongoClient('mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false')
+result = client['MonsterUS']['IndiaJobs'].aggregate([
+    {
+        '$group': {
+            '_id': '$location_details.state', 
+            'No_of_jobs_available': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$sort': {
+            'No_of_jobs_available': -1
+        }
+    }
+])
+
+# User Story 3: Joe is in management body of Monster and he came to know that while posting job, HR provides their contact details in job description field. Therefore, job seeker directly contacts HR instead of applying for that job through monster.com. He has asked his team to find out data of such cases. 
+# Database used - MongoDB
+
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
+
+client = MongoClient('mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false')
+result = client['MonsterUS']['IndiaJobs'].aggregate([
+    {
+        '$match': {
+            'job_details.job_description': {
+                '$regex': '[a-z0-9_.+-]+@+[a-z0-9]+.com'
+            }, 
+            'job_details.job_description': {
+                '$regex': '[+91]+[0-9]'
+            }, 
+            'job_details.job_description': {
+                '$regex': '[+91-]+[0-9]'
+            }, 
+            'job_details.job_description': {
+                '$regex': '[+91 ]+[0-9]'
+            }, 
+            'job_details.job_description': {
+                '$regex': '[0]+[0-9]'
+            }, 
+            'job_details.job_description': {
+                '$regex': 'contact details'
+            }
+        }
+    }, {
+        '$project': {
+            'job_details.job_description': 1
+        }
+    }
+])
+
+# User Story 4: Maya is an analyst at ABC company, wants to know how many numbers of jobs available and what would be experience required for those jobs in perticular cities so she can help the job seeker to search for a job promptly. 
+# Database used - Neo4j
+
+load csv with headers from "file:///MonsterIndia.csv" as row 
+with row
+where row.job_board is not null and row.job_type is not null
+and row.date_added is not null and row.job_category is not null
+and row.job_title is not null and row.organization_name is not null
+and row.job_requirements is not null and row.job_experience is not null
+and row.city is not null
+MERGE (b:JobBoard {JobBoard:row.job_board})
+MERGE (t:JobType {JobType:row.job_type})
+MERGE (p:PostDate {PostDate:row.date_added})
+MERGE (c:Category {Category:row.job_category})
+MERGE (j:JobTitle{JobTitle: row.job_title , Organization: row.organization_name})
+MERGE (s:Skills {Skills:row.job_requirements})
+MERGE (e:Experience {Experience:row.job_experience})
+MERGE (l:City {City: row.city})
+
+MERGE (b)-[:is_having]->(t)
+MERGE (t)-[:are]->(j)
+MERGE (j)-[:is_posted_on]->(p)
+MERGE (j)-[:has_category]->(c)
+MERGE (j)-[:requires_skills]->(s)
+MERGE (j)-[:requires_experience]->(e)
+MERGE (j)-[:is_located_at]->(l)
+Merge (l)-[:has]->(e)
+Merge (e)-[:has]->(c)
+Return *
+
+match (n) where n.City = 'Nagpur' return (n)
+
+# User Story 5: Judy is a data analyst wants to know what categories of jobs are available in market for IT category and what would be job title for those jobs so she will get idea about all the job details.
+# Database used - Neo4j
+
+# same model need to be loaded like above user story
+match (n) where n.Category = 'IT' return (n)
+
+#User story 6: Nick wants to start a company in HR management & consultancy. He wants to do some research beforehand and know how many such job postings are there (listed on monster) which companies do they post jobs for? Do they mention any conditions or commission related information? 
+
+#Database: Monster India
+
+#Steps: Using filters we get the job postings which have job categories as HR or Recruitment and Staffing and find the count. Next group by organization_name to know the company for which hiring is done. And then use regex to find job postings with words like commissions. (MongoDB)
+
+#Code:
+[
+    {
+        '$match': {
+            'job_details.job_category': {
+                '$regex': 'HR|Recruitment and Staffing', 
+                '$options': 'i'
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$job_details.job_requirements', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$job_details.organization_name', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$match': {
+            'job_details.job_description': {
+                '$regex': 'commission', 
+                '$options': 'i'
+            }
+        }
+    }
+]
+
+#User story 7: Nina as the owner of a logistic company wants to know how many job openings are offered relocation assistance. Which companies are these? And in which job locations do they provide relocation assistance.  
+
+#Database: Monster India
+
+#Steps: Using regex we can find job postings with words like relocation assistance. Next filter organization_name to know the company for which hiring is done. And then filter by city to know the location. (MongoDB)
+
+#Code:
+[
+    {
+        '$match': {
+            'job_details.job_description': {
+                '$regex': 'Relocation assistance', 
+                '$options': 'i'
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$job_details.organization_name', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$location_details.city', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }
+]
+
+#User story 8: The RTO of India wants to know how many job openings typically ask for driver/biker license as a job requirement. These jobs belong to which city and states.
+
+#Database: Monster India
+
+#Steps: Using regex we can find job postings with words like license, driver, biker. And then filter by state and or city to know the location. (MongoDB)
+
+#Code:
+
+[
+    {
+        '$match': {
+            '$and': [
+                {
+                    'job_details.job_description': {
+                        '$regex': 'license', 
+                        '$options': 'i'
+                    }
+                }, {
+                    'job_details.job_description': {
+                        '$regex': 'driver|biker', 
+                        '$options': 'i'
+                    }
+                }
+            ]
+        }
+    }, {
+        '$group': {
+            '_id': '$location_details.state', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }, {
+        '$group': {
+            '_id': '$location_details.city', 
+            'count': {
+                '$sum': 1
+            }
+        }
+    }
+]
+
+#User story 9: Fred is a college dropout and he wants to if there are any full time / part time (not contractual) BPO jobs that sponsor education for their employee or provide flexibility for part time studies
+
+#Database: Monster USA
+
+#Steps:  For this, first we filter job postings which have BPO as their Type and full time or part time in their job_type. Next, filter the job description with regex as ‘education’ 
+
+#Code:
+
+import pandas as pd
+import numpy as np
+import redis
+import json
+r = redis.Redis(host='localhost', port=6379, db=0)
+df= pd.read_excel('C:/Users/49152/Downloads/Ojal/IS-Redis/monster_com-job_sample-cleaned.xls')
+df['date_added']=df['date_added'].astype(str)
+df.head(5)
+df.drop(df.iloc[:, 14:256], inplace = True, axis = 1)
+for i in range(len(df['country'])):
+    user = {"country":df['country'][i], "country_code":df['country_code'][i],
+            "date_added":df['date_added'][i], "has_expired":df['has_expired'][i],
+            "job_board":df['job_board'][i],"job_description":df['job_description'][i],
+            "job_title":df['job_title'][i],"location":df['location'][i],"Type":df['Type'][i],
+            "page_url":df['page_url'][i],"salary":df['salary'][i], "sector":df['sector'][i],
+            "job_type":df['job_type'][i], "uniq_id":df['uniq_id'][i]}
+    r.hmset("dict"+str(i),user)
+uniq_id_list = []
+for i in range(len(df)):
+    a = r.hget('dict'+str(i),'uniq_id')
+    uniq_id_list.append(a)
+list_id = []
+list_date = []
+for i in range(len(df)):
+    a = r.hget('dict'+str(i),'uniq_id')
+    list_id.append(a)
+    b = r.hget('dict'+str(i), 'date_added')
+    list_date.append(b)
+list_JD =[]
+list_JT =[]
+list_jobtype =[]
+list_Type =[]
+list_location =[]
+list_salary =[]
+list_sector =[]
+for i in range(len(df)):
+    c = r.hget('dict'+str(i), 'job_description')
+    list_JD.append(c)
+    d = r.hget('dict'+str(i), 'job_title')
+    list_JT.append(d)
+    e = r.hget('dict'+str(i),'job_type')
+    list_jobtype.append(e)
+    f = r.hget('dict'+str(i), 'Type')
+    list_Type.append(f)
+    g = r.hget('dict'+str(i), 'location')
+    list_location.append(g)
+    h = r.hget('dict'+str(i), 'salary')
+    list_salary.append(h)
+    k = r.hget('dict'+str(i), 'sector')
+    list_sector.append(k)
+list_df = pd.DataFrame()
+list_df['uniq_id'] = list_id
+list_df['date_added'] = list_date
+list_df = list_df.stack().str.decode('utf-8').unstack()
+query2 = pd.DataFrame()
+query2['uniq_id'] = list_id
+query2['date_added'] = list_date
+query2['job_description'] = list_JD
+query2['job_title'] = list_JT
+query2['job_type'] = list_jobtype
+query2['Type'] = list_Type
+query2['location'] = list_location
+query2['salary'] = list_salary
+query2['sector'] = list_sector
+query2 = query2.stack().str.decode('utf-8').unstack()
+ids = list_df['uniq_id']
+
+list_df[ids.isin(ids[ids.duplicated()])].sort_values("uniq_id").head(11)
+
+#User story 10: Roger who works in the admin of Monster.com has been getting complaints that some unique job ids are not so unique and there are cases where more than one job posting has got the same uniq_id. He thinks it’s from the time he created a new ETL script, so he wants to know how many such cases exists and what dates these (duplicate uniq_id job postings) were created?
+
+#Database: Monster USA
+
+#Steps:  For this user story we mainly need two columns from our dataset - date and uniq_id.
+Since each row record is saved as a dictionary in redis. I only call out the two required columns in a list and find the duplicated in uniq_id along with their associated dates.
+
+#Code:
+
+BPO_PFT = query2[(query2['Type'] == 'BPO') & ((query2['job_type'] == 'Full Time')| (query2['job_type'] == 'Part Time'))]
+BPO_PFT
+BPO_PFT.set_index('job_description').filter(regex='education', axis=0) 
+
+#User story 11: Anna as a head a recruitment in a budding company wants to find out what are words most utilized in describing the companies to be appealing to the job seekers.
+
+Database : Redis, Dataset : Monster US 
+
+Code : 
+
+import pandas as pd
+import numpy as np
+import redis
+
+r = redis.Redis(host='localhost', port=6379, db=0)
+df= pd.read_excel('C:/monster_com-job_sample.xls')
+df.drop(df.iloc[:, 14:256], inplace = True, axis = 1)
+df['date_added']=df['date_added'].astype(str)
+df.head(3)
+
+for i in range(len(df['country'])):
+    user = {"country":df['country'][i], "country_code":df['country_code'][i], "date_added":df['date_added'][i], "has_expired":df['has_expired'][i],"job_board":df['job_board'][i],"job_description":df['job_description'][i],"job_title":df['job_title'][i],"location":df['location'][i],"Type":df['Type'][i],"page_url":df['page_url'][i],"salary":df['salary'][i],"uniq_id":df['uniq_id'][i]}
+    r.hmset("sind"+str(i),user)
+
+text = " "
+for i in range(len(df['country'])):
+    x = r.hget("sind"+str(i),'job_description')
+    text = text + str(x)
+
+cachedStopWords = stopwords.words("english")
+def testFuncNew(raw):
+        cleaned = ' '.join([word for word in raw.split() if word not in cachedStopWords])
+        return cleaned
+cleaned = testFuncNew(text)
+cleaned = cleaned.replace('\\xc2\\xac\\xe2\\x80\\xa0','')
+cleaned = cleaned.replace('The','')
+cleaned = cleaned.replace('-','')
+cleaned = cleaned.replace('This','')
+cleaned = cleaned.replace('We','')
+cleaned = cleaned.replace('job','')
+
+
+import collections
+def top5_words(text):
+    counts = collections.Counter(text.split())
+    return counts.most_common(10)
+top5_words(cleaned)
+
+#User story 12: Rajeev is a student in Bangalore and he is in urgent need of a part time job. So he wants find which sector/domain has most  part time jobs in his location. He would also like to know which companies are providing them.
+
+Database : MongoDB, Dataset : Monster India
+
+Code : 
+[{
+    $match: {
+        "job_type": "PART_TIME",
+        "city": "Bengaluru / Bangalore"
+    }
+}, {
+    $group: {
+        _id: "$job_category",
+        counter: {
+            $sum: 1
+        }
+    }
+}]
+
+#User story 13: Sara who works in Retail sector in a foreign country, wants to know which location is the hotspot for that sector in the US.
+
+Database : MongoDB, Dataset : Monster US
+
+Code: 
+
+[{
+    $match: {
+        "job_details.sector": "Retail"
+    }
+}, {
+    $group: {
+        _id: "$location_details.location",
+        counter: {
+            $sum: 1
+        }
+    }
+}]
+
+#User story 14: Luiz as a DS wants to analyze the growth rate of all kinds of jobs at Dallas location through the years.
+
+Database : MongoDB, Dataset : Monster US 
+
+Code:
+
+[{$match: {
+  "location_details.location":"Dallas, TX",
+  "job_details.sector":"Medical/Health"
+}}, {$group: 
+    {
+  _id: {year :  { $substr : ["$date_added", 6, 10 ] }},
+  counter:{$sum:1}
+}
+
+}]
+
+
+#User story 15: Nitin as a head of Bangalore branch of Advika Solutions, wants to how many Java Developer positions are present in Advika Solutions in Bangalore to distribute the newly trained grads to those positions.
+
+Database : Redis, Dataset : Monster India
+
+Code :
+
+import pandas as pd
+import numpy as np
+import redis
+
+r = redis.Redis(host='localhost', port=6379, db=1)
+df= pd.read_excel('C:/MonsterIndiaNeo.xlsx',error_bad_lines=False)
+df.head(2)
+
+df['job_requirements']=df['job_requirements'].astype(str)
+df['job_experience']=df['job_experience'].astype(str)
+df['country']=df['country'].astype(str)
+df['job_board']=df['job_board'].astype(str)
+df['job_type']=df['job_type'].astype(str)
+df['date_added']=df['date_added'].astype(str)
+df['country_code']=df['country_code'].astype(str)
+df['state']=df['state'].astype(str)
+df['city']=df['city'].astype(str)
+df['organization_name']=df['organization_name'].astype(str)
+df['job_category']=df['job_category'].astype(str)
+df['job_title']=df['job_title'].astype(str)
+
+for i in range(len(df['job_title'])):
+    user = {"job_title":df['job_title'][i], "job_category":df['job_category'][i], "organization_name":df['organization_name'][i], "city":df['city'][i],"state":df['state'][i],"country_code":df['country_code'][i],"date_added":df['date_added'][i],"job_type":df['job_type'][i],"job_board":df['job_board'][i],"country":df['country'][i],"job_experience":df['job_experience'][i],"job_requirements":df['job_requirements'][i]}
+    r.hmset(df['job_title'][i]+df['organization_name'][i]+df['city'][i]+str(i),user)
+
+r.keys('*Java DeveloperAdvika SolutionsBengaluru / Bangalore*')
+
+#User story 16: As the HR of a company, Search for candidates with special skills categorizing them based on the industry they have experience in (combination of 2 or more skills).
+
+#Database: MongoDB with LinkedIn Profiles dataset
+from pymongo import MongoClient
+
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
+
+client = MongoClient('mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false')
+
+#Steps: Using Job_seeker dataset, first we select the required information to be displayed using “$project” function, match the skills required by the HR specifying the skill name with “$match” function, group the industry to get a suitable candidate with the required domain along with the number of records corresponding to the industry.
+
+#Code:
+[{$project: {
+  _id:0,
+  name:1,
+  locality:1,
+  skills:1,
+  industry:1,
+  summary:1,
+  experience:1
+
+  }}, {$match: {
+  skills: "Biotechnology",
+  skills: "Medical Devices"
+}}, {$group: {
+  _id: "$industry",
+  nRecord: {
+    "$sum": 1
+  }
+}}]
+
+#User story 17: As the regional manager Michael wants to know if some candidates have applied for the job posting with respect to their skills for the job profile. He wants to know how many new profiles have been updated for the skills he wants for the job application.
+
+#Database: Redis (LinkedIn dataset)
+
+#Steps: The linkedIn dataset was imported into Redis database using the concatenated value of ‘name’, ‘locality’, ‘skills’ and ‘industry’ as the key to the dictionaries. The command used was “r.hgetall("sind6")” to get the records, list is created with skills and count the number of skills by providing the desired skill in a for loop.
+
+#Code:
+import pandas as pd
+import numpy as np
+import redis
+r = redis.Redis(host='localhost', port=6379, db=0)
+df = pd.read_excel('C:/Users/Aarti/Downloads/Information systems_sem3/Datastore/476769_892965_bundle_archive/linkedinjson/seekertryexcel.xlsx')
+df.drop(df.iloc[:, 14:256], inplace = True, axis = 1)
+df.head(3)
+for i in range(len(df['skills'])):
+    user = {"name.family_name":df['name.family_name'][i], "name.given_name":df['name.given_name'][i], "locality":df['locality'][i], "skills":df['skills'][i],"industry":df['industry'][i]}
+    r.hmset("sind"+str(i),user)
+r.hgetall("sind6")
+text = []
+for i in range(len(df['skills'])):
+    x = r.hget("sind"+str(i),'skills')
+    text.append(x)
+text
+count =0
+for i in range(len(text)):
+  if b'Advertising' in text[i]:
+    count = count + 1
+count
+
+#User Story 18: As a job seeker Uwe, a resident of “Las Vegas” wants to search for jobs present nearby.
+
+#Database: MongoDB (Monster_US dataset)
+from pymongo import MongoClient
+
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
+
+client = MongoClient('mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false')
+#Steps: First to get the nearby jobs use the “$match” function to get the location of interest then count the total number of positions available in the location.
+
+#Code:
+[{$project: {
+  _id:0,
+  date_added:1,
+  has_expired:1,
+  job_details:1,
+  location_details:1,
+  Job_source_details:1
+}}, {$match: {
+  "location_details.location": "Las Vegas, NV",
+   "location_details.country_code" : "US"
+}}, {$count: 'N'}]
+
+#User Story 19: As a career consular Dan would like to advise the students for the upcoming career opportunities looking into past 2 years of data categorizing them based on industry and skill set.
+
+#Database: Neo4j (Monster_India dataset)
+
+#Steps: The Monster_India dataset is used to map industry along with skills with a relation “relates”. The light blue nodes represent the industry and the dark blue nodes represent skills. Add "MERGE (c)-[:relates]->(s)" to the code to get relationship with category and skills.
+
+#Code:
+load csv with headers from "file:///MonsterIndia.csv" as row 
+with row
+where row.job_board is not null and row.job_type is not null
+and row.date_added is not null and row.job_category is not null
+and row.job_title is not null and row.organization_name is not null
+and row.job_requirements is not null and row.job_experience is not null
+and row.city is not null and row.state is not null and row.country is not null
+MERGE (b:JobBoard {JobBoard:row.job_board})
+MERGE (t:JobType {JobType:row.job_type})
+MERGE (p:PostDate {PostDate:row.date_added})
+MERGE (c:Category {Category:row.job_category})
+MERGE (j:JobTitle{JobTitle: row.job_title , Organization: row.organization_name})
+MERGE (s:Skills {Skills:row.job_requirements})
+MERGE (e:Experience {Experience:row.job_experience})
+MERGE (l:City {City: row.city , State:row.state , country: row.country})
+
+MERGE (b)-[:post]->(t)
+MERGE (t)-[:has]->(c)
+MERGE (c)-[:contains]->(j)
+MERGE (j)-[:posted_on]->(p)
+MERGE (j)-[:requires]->(e)
+MERGE (j)-[:needs]->(s)
+MERGE (j)-[:located_at]->(l)
+MERGE (c)-[:relates]->(s)
+Return *
+
+#User Story 20: As a competitor for a company, find if the competitor companies are hiring people with special skills to know what they are trying to implement (example, BMW would like to know why Audi is hiring candidates with ML and embedded process background skills which can provide them with an idea about what is Audi working on. Are they building self driven cars).
+
+#Database: MongoDB (Monster_India dataset)
+from pymongo import MongoClient
+
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
+
+client = MongoClient('mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false')
+#Steps: The Monster_India dataset is used, First to get only the job details “$project” function is used, then “$match” function is used to get the jobs by category and regex for getting the title of job to match if the other company is looking for a candidate with skill like Machine learning, finally use “$group” function to get the companies who have posted such jobs along with the counter to look for the number of jobs posted for the skills.
+
+#Code:
+[{$project: {
+  _id: 0,
+ job_details:1
+}}, {$match: {
+  "job_details.job_category": "IT",
+  "job_details.job_title": 
+   {$regex: 'Machine Learning'} 
+}}, {$group: {
+  _id: "$job_details.organization_name",
+   counter:{$sum:1}
+}}]
+
+User Story 21 : Reiko as a product owner wants to recruit persons for his new project  and would like to post accordingly in the Job portal . But he is not sure of the salary to be posted and would like to know the range of salary for his requirement.
+
+sol: MongoDB
+MongoDB : db.MonsterUs.find( { "job_details.job_title" : "Sales Representative -- Job in Las Vegas","job_details.job_type" : "Full-time" } , { "job_details.salary" : 1} )
+
+User Story 22: Sam is looking for a full time job opportunity and wants to know the organisation which is having more number of full time jobs.
+
+sol: Neo4J
+load csv with headers from "file:///MonsterIndia.csv" as row 
+with row
+where row.organization_name is not null and  row.job_type is not null
+Merge (o: organisation{Organization: row.organization_name})
+MERGE (t:JobType {JobType:row.job_type})
+Merge (o)-[:having]- (t)
+
+User Story 23:Nina is a student in Q university and wants to apply for an internship  and in search of getting one. She wanted to know the requirements, benefits and description details in all companies for internships.
+
+sol: MongoDB
+[
+    {
+        '$match': {
+            'job_details.job_description': {
+                '$regex': 'Internship'
+            }
+        }
+    }, {
+        '$project': {
+            'job_details': 1
+        }
+    }
+]
+
+User Story 24: Alex is working for X company in Thailand. He wants to move to India and would like to know the most in demand locations in the IT category and any Job title with 10 years experience.
+
+sol: MongoDB
+
+[
+    {
+        '$match': {
+            'job_details.job_category': 'IT', 
+            'job_details.job_experience': '10 - 18 years'
+        }
+    }, {
+        '$project': {
+            'location_details.city': 1
+        }
+    }
+]
+
+User Story 25: Sarah as a Data researcher in Monster.in would like to know which technology or programming language is related to most of the Job titles.
+
+sol: Neo4J
+
+load csv with headers from "file:///MonsterIndia.csv" as row 
+with row
+where row.job_title is not null and row.job_requirements is not null
+MERGE (j:JobTitle{JobTitle: row.job_title , Organization: row.organization_name})
+MERGE (s:Skills {Skills:row.job_requirements})
+Merge (s)- [:relates]->(j)
